@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:text_field_mask_and_validation/mask_decorator.dart';
+import 'package:text_field_mask_and_validation/validator.dart';
 
 void main() {
   runApp(const MyApp());
@@ -32,8 +34,23 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   final GlobalKey<FormState> _key = GlobalKey();
   final phoneMask = '(###) ###-####';
-  final _controller = MaskedTextController(mask: '(##) # ####-####');
+  late final MaskDecorator _phoneController;
   final ValueNotifier<String> text = ValueNotifier('');
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    _phoneController = MaskDecorator(mask: '(##) # ####-####');
+  }
+
+  @override
+  void dispose() {
+    // TODO: implement dispose
+    _phoneController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -50,16 +67,16 @@ class _MyHomePageState extends State<MyHomePage> {
             Form(
               key: _key,
               child: TextFormField(
-                controller: _controller,
+                controller: _phoneController,
                 keyboardType: TextInputType.phone,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 decoration: InputDecoration(
-                  labelText: 'Email',
+                  labelText: 'Phone',
                 ),
-                validator: (value) => RegexValidator.validate(
+                validator: (value) => Validator.validate(
                   value,
                   r'^\(\d{2}\) \d \d{4}-\d{4}$',
-                  'Please enter a valid number address',
+                  'Please enter a valid number',
                 ),
               ),
             ),
@@ -76,69 +93,12 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => {
-          if (_key.currentState!.validate()) {text.value = _controller.text}
+          if (_key.currentState!.validate())
+            {text.value = _phoneController.text}
         },
         tooltip: 'Increment',
         child: const Icon(Icons.add),
       ),
     );
-  }
-}
-
-//class for to validate field value with regex that is passed in params
-class RegexValidator {
-  static String? validate(
-      String? value, String regexPattern, String errorMessage) {
-    if (value == null || value.isEmpty) {
-      return 'Please enter some text';
-    }
-
-    final regex = RegExp(regexPattern);
-    if (!regex.hasMatch(value)) {
-      return errorMessage;
-    }
-
-    return null;
-  }
-}
-//class for add mask in text field
-
-class MaskedTextController extends TextEditingController {
-  final String mask;
-  final RegExp _maskRegExp;
-
-  MaskedTextController({required this.mask, String? text})
-      : _maskRegExp = RegExp(mask.replaceAll('#', r'\d')),
-        super(text: text) {
-    addListener(_onChanged);
-  }
-
-  void _onChanged() {
-    final nonMaskedValue = text!.replaceAll(RegExp('[^0-9]'), '');
-    String maskedText = '';
-    var maskIndex = 0;
-    for (var i = 0; i < nonMaskedValue.length; i++) {
-      if (maskIndex >= mask.length) {
-        break;
-      }
-      if (mask[maskIndex] == '#') {
-        maskedText += nonMaskedValue[i];
-        maskIndex++;
-      } else {
-        maskedText += mask[maskIndex];
-        maskIndex++;
-        i--;
-      }
-    }
-    value = TextEditingValue(
-      text: maskedText,
-      selection: TextSelection.fromPosition(
-        TextPosition(offset: maskedText.length),
-      ),
-    );
-  }
-
-  bool isValid() {
-    return _maskRegExp.hasMatch(text!);
   }
 }
